@@ -9,6 +9,8 @@ import (
 	"os/signal"
 
 	"github.com/alecthomas/kong"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/watchedsky-social/libwatchedsky/geodata"
 	"github.com/watchedsky-social/libwatchedsky/geodata/migrations"
 
 	_ "github.com/watchedsky-social/go-spatialite"
@@ -28,6 +30,9 @@ type cliArgs struct {
 	Validate *command `cmd:""`
 	DBFile   string   `short:"f" default:"geodata.db" help:"The DB file name"`
 	DataDir  string   `short:"d" type:"existingdir" default:"../../geodata-sources/zones" help:"The directory with source data"`
+	S3Bucket string   `default:"watchedsky-social" hidden:""`
+	S3Key    string   `default:"geodata.db" hidden:""`
+	S3Region string   `default:"us-east-2" hidden:""`
 }
 
 func main() {
@@ -63,5 +68,20 @@ func main() {
 
 	if err := cmd(ctx, cli.DBFile, cli.DataDir); err != nil {
 		log.Fatal(err)
+	}
+
+	if cli.S3Bucket != "" && cli.S3Key != "" {
+		awsCfg, err := config.LoadDefaultConfig(ctx)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		if err = geodata.SaveToS3(ctx, &geodata.S3Config{
+			Region: cli.S3Region,
+			Bucket: cli.S3Bucket,
+			Key:    cli.S3Key,
+		}, awsCfg.Credentials, cli.DBFile); err != nil {
+			log.Fatal(err)
+		}
 	}
 }
