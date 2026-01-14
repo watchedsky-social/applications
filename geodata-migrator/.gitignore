@@ -27,3 +27,4 @@ go.work.sum
 
 *.db
 migrator*
+*.db.etag

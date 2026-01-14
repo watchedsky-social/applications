@@ -42,6 +42,21 @@ func main() {
 	var cli cliArgs
 	k := kong.Parse(&cli)
 
+	if cli.S3Bucket != "" && cli.S3Key != "" {
+		awsCfg, err := config.LoadDefaultConfig(ctx)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		if err = geodata.CopyFromS3(ctx, &geodata.S3Config{
+			Region: cli.S3Region,
+			Bucket: cli.S3Bucket,
+			Key:    cli.S3Key,
+		}, awsCfg.Credentials, cli.DBFile); err != nil {
+			log.Fatal(err)
+		}
+	}
+
 	var cmd migrations.GooseCommand
 	switch k.Command() {
 	case "up":
